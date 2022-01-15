@@ -7,9 +7,19 @@ import {
   FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import firebase from "../database/firebaseDB";
+
+const db = firebase.firestore().collection("todos");
 
 export default function NotesScreen({ navigation, route }) {
   const [notes, setNotes] = useState([]);
+
+  firebase.firestore().collection("testing").add({
+    title: "Testing! Does this work???",
+    body: "This is to check the Integration is working",
+    potato: true,
+    question: "Why is there a potato bool here",
+  });
 
   // This is to set up the top right button
   useEffect(() => {
@@ -30,15 +40,37 @@ export default function NotesScreen({ navigation, route }) {
     });
   });
 
+  
+          useEffect(() => {
+            const unsubscribe = db.onSnapshot((collection) => {
+                const updatedNotes = collection.docs.map((doc) => {
+        
+                  const noteObject = {
+                    ...doc.data(),
+                    id: doc.id,
+                  }
+                  console.log(noteObject)
+                  return noteObject
+                });
+                setNotes(updatedNotes)
+              });
+        
+            return unsubscribe;
+          }, []);
+          
+
+      
   // Monitor route.params for changes and add items to the database
   useEffect(() => {
     if (route.params?.text) {
       const newNote = {
         title: route.params.text,
         done: false,
-        id: notes.length.toString(),
+        //id: notes.length.toString(),
       };
-      setNotes([...notes, newNote]);
+
+      db.add(newNote);
+      //setNotes([...notes, newNote]);
     }
   }, [route.params?.text]);
 
@@ -50,7 +82,10 @@ export default function NotesScreen({ navigation, route }) {
   function deleteNote(id) {
     console.log("Deleting " + id);
     // To delete that item, we filter out the item we don't want
-    setNotes(notes.filter((item) => item.id !== id));
+    //add firebase interaction
+    db.doc(id).delete();
+      
+    //setNotes(notes.filter((item) => item.id !== id));
   }
 
   // The function to render each row in our FlatList
@@ -85,7 +120,7 @@ export default function NotesScreen({ navigation, route }) {
       />
     </View>
   );
-}
+  }
 
 const styles = StyleSheet.create({
   container: {
